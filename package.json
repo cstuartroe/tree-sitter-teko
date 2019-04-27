@@ -1,0 +1,31 @@
+{
+  "name": "tree-sitter-teko",
+  "version": "1.0.2",
+  "description": "Teko grammar for tree-sitter",
+  "main": "index.js",
+  "keywords": [
+    "parser",
+    "lexer"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cstuartroe/tree-sitter-teko.git"
+  },
+  "author": "Conor Stuart Roe",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cstuartroe/tree-sitter-teko/issues"
+  },
+  "homepage": "https://github.com/cstuartroe/tree-sitter-teko#readme",
+  "dependencies": {
+    "nan": "^2.13.2"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.14.6"
+  },
+  "scripts": {
+    "build": "tree-sitter generate && node-gyp build",
+    "test": "tree-sitter test && script/parse-examples",
+    "test-windows": "tree-sitter test"
+  }
+}
