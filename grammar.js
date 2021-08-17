@@ -25,8 +25,10 @@ module.exports = grammar({
       "type",
       $.label,
       "=",
-      $.expression,
+      $.type,
     ),
+
+    type: $ => $.expression,
 
     expression: $ => choice(
       $.simple_expression,
@@ -125,7 +127,7 @@ module.exports = grammar({
       $.label,
       optional(seq(
         ":",
-        $.expression,
+        $.type,
       )),
     ),
 
@@ -147,7 +149,7 @@ module.exports = grammar({
       ")",
       optional(seq(
         ":",
-        $.expression,
+        $.type,
       )),
       choice(
         $.codeblock,
@@ -235,7 +237,7 @@ module.exports = grammar({
       ":",
       optional($.expression),
       "=",
-      $.expression,
+      $.type,
     )),
 
     updater: $ => choice("<-","+=","-=","*=","/=","%=","^="),
