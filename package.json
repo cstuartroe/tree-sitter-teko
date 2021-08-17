@@ -11,7 +11,7 @@
   "license": "ISC",
   "dependencies": {},
   "devDependencies": {
-    "electron": "^6.1.12",
+    "electron": "^9.4.0",
     "electron-rebuild": "^2.3.5",
     "nan": "^2.14.2",
     "tree-sitter-cli": "^0.16.9"
