@@ -1,259 +1,257 @@
-const
-prefixes = ["!","~"],
-setters = ["=","+=","-=","*=","/=","%=","^=","=&"],
-comparisons = ["==", "!=", "<", ">", "<=", ">=", "<:"],
-boolean_operators = ["&","|","in","to"],
-additive_operators = ["+","-"],
-multiplicative_operators = ["*","/","%"],
-exponential_operators = ["^"],
-suffixes = [".","$","#","++","--"]
-
-
 module.exports = grammar({
   name: 'teko',
+
+  word: $ => $.label,
+
+  extras: $ => [$.line_comment, /\s/],
 
   rules: {
     source_file: $ => repeat($.statement_with_semicolon),
 
+    line_comment: $ => seq('//', /.*/),
+
     statement_with_semicolon: $ => seq(
       $.statement,
-      ';'
+      optional(';'),
+      optional(/\n/), // not sure why I need this but it breaks if I remove it
     ),
 
-    statement: $ => prec.right(choice(
-      $.declaration,
-      $.namespace,
-      $.expression
-    )),
-
-    namespace: $ => seq(
-      'namespace',
-      $.codeblock
+    statement: $ => choice(
+      $.expression,
+      $.type_definition,
     ),
 
-    declaration: $ => prec(2, seq(
-      repeat($.annotation),
-      optional('async'),
-      optional('var'),
-      $.prefix_expression,
-      repeat(seq($.declared, ',')),
-      $.declared
-    )),
-
-    annotation: $ => choice(
-      '@IO',
-      '@hangs',
-      '@updates',
-      seq('@sees',     $.annotation_params),
-      seq('@modifies', $.annotation_params),
-      seq('@throws',   $.annotation_params)
-    ),
-
-    annotation_params: $ => seq(
-      repeat(seq($.label, ',')),
-      $.label
-    ),
-
-    declared: $ => seq(
+    type_definition: $ => seq(
+      "type",
       $.label,
-      optional($.assignment_predicate)
-    ),
-
-    assignment_predicate: $ => choice(
-      seq(
-        choice(...setters),
-        $.expression
-      ),
-      seq(
-        '->',
-        $.codeblock
-      )
-    ),
-
-    codeblock: $ => choice(
-      $.statement,
-      seq(
-        '{',
-        repeat($.statement_with_semicolon),
-        '}'
-      )
+      "=",
+      $.expression,
     ),
 
     expression: $ => choice(
-      seq(
-        $.tight_expression,
-        $.assignment_predicate
-      ),
-      $.comparison_expression,
-      $.if_expression,
-      $.for_expression,
-      $.while_expression
-    ),
-
-    comparison_expression: $ => seq(
-      optional(seq(
-        $.comparison_expression,
-        choice(...comparisons)
-      )),
-      $.boolean_expression
-    ),
-
-    boolean_expression: $ => seq(
-      optional(seq(
-        $.boolean_expression,
-        choice(...boolean_operators)
-      )),
-      $.additive_expression
-    ),
-
-    additive_expression: $ => seq(
-      optional(seq(
-        $.additive_expression,
-        choice(...additive_operators)
-      )),
-      $.multiplicative_expression
-    ),
-
-    multiplicative_expression: $ => seq(
-      optional(seq(
-        $.multiplicative_expression,
-        choice(...multiplicative_operators)
-      )),
-      $.exponential_expression
-    ),
-
-    exponential_expression: $ => seq(
-      optional(seq(
-        $.exponential_expression,
-        choice(...exponential_operators)
-      )),
-      $.prefix_expression
-    ),
-
-    prefix_expression: $ => seq(
-      optional(choice(...prefixes)),
-      $.tight_expression
-    ),
-
-    tight_expression: $ => prec(1, choice(
-      $.atomic_expression,
+      $.simple_expression,
+      $.tuple,
+      $.array,
+      $.set,
+      $.map,
+      $.object,
+      $.function_definition,
+      $.block_expression,
+      $.call,
       $.attribute,
-      seq($.tight_expression, choice(...suffixes)),
-      $.struct,
-      $.args,
-      $.sequence
-    )),
-
-    attribute: $ => prec(2, choice (
-      seq($.tight_expression, '.', $.label),
-      seq($.tight_expression, $.args),
-      seq($.tight_expression, $.sequence)
-    )),
-
-    struct: $ => seq(
-      "(",
-      repeat(seq(
-        $.struct_elem,
-        ","
-      )),
-      $.struct_elem,
-      ")"
+      $.comparison_expression,
+      $.add_sub_expression,
+      $.mult_div_expression,
+      $.exp_expression,
+      $.suffix_expression,
+      $.if_expression,
+      $.declaration,
+      $.update,
     ),
 
-    struct_elem: $ => seq(
-      $.prefix_expression,
-      $.label,
-      optional(seq(
-        "?",
-        $.expression
-      ))
-    ),
-
-    args: $ => seq(
-      "(",
-      optional(seq(
-        repeat(seq(
-          $.arg,
-          ","
-        )),
-        $.arg
-      )),
-      ")"
-    ),
-
-    arg: $ => seq(
-      prec(1,optional(seq(
-        $.label,
-        "="
-      ))),
-      $.expression
-    ),
-
-    sequence: $ => prec(-1, choice(
-      seq(
-        "{",
-        optional($.sequence_body),
-        "}"
-      ),
-      seq(
-        "[",
-        optional($.sequence_body),
-        "]"
-      )
-    )),
-
-    sequence_body: $ => seq(
-      repeat(seq(
-        $.expression,
-        ","
-      )),
-      $.expression
-    ),
-
-    atomic_expression: $ => choice(
-      $.known_type,
+    simple_expression: $ => prec(6, choice(
       $.label,
       $.string,
       $.char,
       $.num,
       $.bool,
-      $.bits,
-      $.bytes
+    )),
+
+    tuple: $ => seq(
+      "(",
+      repeat(seq(
+        $.expression,
+        ",",
+      )),
+      optional($.expression),
+      ")",
     ),
 
-    known_type: $ => choice(
-      'let',
-      'type',
-      'obj',
-      'int',
-      'real',
-      'str',
-      'char',
-      'bool',
-      'bits',
-      'bytes',
-      'label',
-      'unit',
-      'struct',
-      'enum'
+    array: $ => seq(
+      "[",
+      repeat(seq(
+        $.expression,
+        ",",
+      )),
+      optional($.expression),
+      "]",
     ),
+
+    set: $ => seq(
+      "set",
+      "{",
+      repeat(seq(
+        $.expression,
+        ",",
+      )),
+      optional($.expression),
+      "}",
+    ),
+
+    key_value: $ => seq(
+      $.expression,
+      ":",
+      $.expression,
+    ),
+
+    map: $ => seq(
+      "map",
+      "{",
+      repeat(seq(
+        $.key_value,
+        ",",
+      )),
+      optional($.key_value),
+      "}",
+    ),
+
+    object_field: $ => seq(
+      $.label,
+      ":",
+      $.expression,
+    ),
+
+    object: $ => seq(
+      "{",
+      repeat(seq(
+        $.object_field,
+        ",",
+      )),
+      optional($.object_field),
+      "}",
+    ),
+
+    argdef: $ => seq(
+      $.label,
+      optional(seq(
+        ":",
+        $.expression,
+      )),
+    ),
+
+    codeblock: $ => seq(
+      '{',
+      repeat($.statement_with_semicolon),
+      '}',
+    ),
+
+    function_definition: $ => prec.left(0, seq(
+      "fn",
+      optional($.label),
+      "(",
+      repeat(seq(
+        $.argdef,
+        ",",
+      )),
+      optional($.argdef),
+      ")",
+      optional(seq(
+        ":",
+        $.expression,
+      )),
+      choice(
+        $.codeblock,
+        seq(
+          "->",
+          $.expression,
+        )
+      )
+    )),
+
+    block_expression: $ => seq(
+      choice("do", "scope"),
+      $.codeblock,
+    ),
+
+    call: $ => prec.left(5, seq(
+      $.expression,
+      "(",
+      repeat(seq(
+        $.expression,
+        ",",
+      )),
+      optional($.expression),
+      ")",
+    )),
+
+    attribute: $ => prec.left(6, seq(
+      $.expression,
+      ".",
+      $.label,
+    )),
+
+    comparison_expression: $ => prec.left(1, seq(
+      $.expression,
+      choice("==", "!=", "<", ">", "<=", ">=", "<:"),
+      $.expression,
+    )),
+
+    add_sub_expression: $ => prec.left(2, seq(
+      $.expression,
+      choice("+","-","&","|"),
+      $.expression,
+    )),
+
+    mult_div_expression: $ => prec.left(3, seq(
+      $.expression,
+      choice("*","/","%"),
+      $.expression,
+    )),
+
+    exp_expression: $ => prec.left(4, seq(
+      $.expression,
+      choice("^"),
+      $.expression,
+    )),
+
+    suffix_expression: $ => prec.left(5, seq(
+      $.expression,
+      choice(".","$","#","?"),
+    )),
+
+    if_expression: $ => prec.left(0, seq(
+      "if",
+      $.expression,
+      optional("then"),
+      $.expression,
+      optional(seq(
+        "else",
+        $.expression,
+      ))
+    )),
+
+    declaration: $ => prec.left(0, seq(
+      $.label,
+      ":",
+      optional($.expression),
+      "=",
+      $.expression,
+    )),
+
+    updater: $ => choice("<-","+=","-=","*=","/=","%=","^="),
+
+    update: $ => prec.left(0, seq(
+      $.label,
+      $.updater,
+      $.expression,
+    )),
 
     label: $ => /[a-zA-Z_][a-zA-Z0-9_]*/,
 
     string: $ => seq(
       '"',
-      repeat($.character),
+      repeat(choice($.character, "'")),
       '"'
     ),
 
     char: $ => seq(
       "'",
-      $.character,
+      choice($.character, "\""),
       "'"
     ),
 
     character: $ => token.immediate(choice(
-      prec(1, /[^"\n\\]/),
+      prec(1, /[^"'\n\\]/),
       '\\\\',
       '\\"',
       "\\'",
@@ -262,56 +260,8 @@ module.exports = grammar({
       /\\x[0-9a-fA-F]{2}/
     )),
 
-    num: $ => /-?[0-9]+\.?[0-9]*/,
+    num: $ => /-?\s*[0-9]+\.?[0-9]*/,
 
     bool: $ => choice('true','false'),
-
-    bits: $ => /0b[01]+/,
-
-    bytes: $ => /0x[0-9a-fA-F]+/,
-
-    if_expression: $ => prec.right(seq(
-      choice(
-        prec(-1, seq(
-          $.expression,
-          "?"
-        )),
-        seq(
-          "if",
-          $.expression
-        )
-      ),
-      $.codeblock,
-      optional(seq(
-        choice(":","else"),
-        $.codeblock
-      ))
-    )),
-
-    while_expression: $ => seq(
-      "while",
-      $.expression,
-      $.codeblock
-    ),
-
-    for_expression: $ => seq(
-      choice("for","parallel"),
-      choice(
-        $.for_setup,
-        seq(
-          "(",
-          $.for_setup,
-          ")"
-        )
-      ),
-      $.codeblock
-    ),
-
-    for_setup: $ => prec(1, seq(
-      optional($.prefix_expression),
-      $.label,
-      "in",
-      $.expression
-    ))
   }
 });
