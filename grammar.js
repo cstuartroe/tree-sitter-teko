@@ -180,33 +180,43 @@ module.exports = grammar({
       $.label,
     )),
 
+    comparator: $ => choice("==", "!=", "<", ">", "<=", ">=", "<:"),
+
     comparison_expression: $ => prec.left(1, seq(
       $.expression,
-      choice("==", "!=", "<", ">", "<=", ">=", "<:"),
+      $.comparator,
       $.expression,
     )),
+
+    add_sub: $ => choice("+","-","&","|"),
 
     add_sub_expression: $ => prec.left(2, seq(
       $.expression,
-      choice("+","-","&","|"),
+      $.add_sub,
       $.expression,
     )),
+
+    mult_div: $ => choice("*","/","%"),
 
     mult_div_expression: $ => prec.left(3, seq(
       $.expression,
-      choice("*","/","%"),
+      $.mult_div,
       $.expression,
     )),
+
+    exp: $ => choice("^"),
 
     exp_expression: $ => prec.left(4, seq(
       $.expression,
-      choice("^"),
+      $.exp,
       $.expression,
     )),
 
+    suffix: $ => choice(".","$","#","?"),
+
     suffix_expression: $ => prec.left(5, seq(
       $.expression,
-      choice(".","$","#","?"),
+      $.suffix,
     )),
 
     if_expression: $ => prec.left(0, seq(
